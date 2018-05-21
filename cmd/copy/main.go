@@ -10,6 +10,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/containerd/continuity/fs"
 	"github.com/moby/buildkit/util/appcontext"
 	"github.com/pkg/errors"
 	"github.com/tonistiigi/copy/detect"
@@ -22,6 +23,7 @@ import (
 type opts struct {
 	unpack bool
 	chown  *copy.ChownOpt
+	root   string
 }
 
 type chown struct {
@@ -44,6 +46,12 @@ func main() {
 		}
 		opt.chown = &copy.ChownOpt{Uid: int(uid), Gid: int(gid)}
 	}
+
+	wd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	opt.root = wd
 
 	if err := runCopy(appcontext.Context(), args, opt); err != nil {
 		panic(err)
@@ -68,11 +76,28 @@ func runCopy(ctx context.Context, args []string, opt opts) error {
 
 	if len(srcs) > 1 {
 		isdir = true
+
 	}
 
 	dest := args[len(args)-1]
-	origDest := dest
 
+	// This handles the case where destination is a symlink.
+	if fi, err := os.Lstat(path.Clean(dest)); err == nil {
+		if fi.Mode() & os.ModeSymlink != 0 {
+			safeDest, err := fs.RootPath(opt.root, dest)
+			if err != nil {
+				return err
+			}
+			if strings.HasSuffix(dest, "/") {
+				dest = safeDest + "/"
+			} else {
+				dest = safeDest
+			}
+		}
+	}
+
+	origDest := dest
+	// If destination is a file, then ensure dest is always a directory by using the parent
 	if !strings.HasSuffix(dest, "/") && !isdir {
 		dest = path.Dir(dest)
 	}
@@ -82,7 +107,7 @@ func runCopy(ctx context.Context, args []string, opt opts) error {
 	}
 
 	// if target is dir extract or copy all
-	fi, err := os.Stat(origDest)
+	fi, err := os.Stat(dest)
 	if err == nil {
 		if fi.IsDir() && opt.unpack {
 			for _, src := range srcs {
