@@ -76,14 +76,13 @@ func runCopy(ctx context.Context, args []string, opt opts) error {
 
 	if len(srcs) > 1 {
 		isdir = true
-
 	}
 
 	dest := args[len(args)-1]
 
 	// This handles the case where destination is a symlink.
 	if fi, err := os.Lstat(path.Clean(dest)); err == nil {
-		if fi.Mode() & os.ModeSymlink != 0 {
+		if fi.Mode()&os.ModeSymlink != 0 {
 			safeDest, err := fs.RootPath(opt.root, dest)
 			if err != nil {
 				return err
