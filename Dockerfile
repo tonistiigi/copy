@@ -1,4 +1,4 @@
-from golang:1.9-alpine AS main
+from golang:1.10-alpine AS main
 workdir /go/src/github.com/tonistiigi/copy
 copy . .
 env CGO_ENABLED=0
