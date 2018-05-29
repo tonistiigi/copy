@@ -171,6 +171,11 @@ func runUnpack(ctx context.Context, src, dest string, t detect.ArchiveType, opt 
 	case detect.Xz:
 		flags += "J"
 	}
+
+	if err := os.MkdirAll(dest, 0700); err != nil {
+		return err
+	}
+
 	cmd := exec.CommandContext(ctx, "tar", flags+"f", src, "-C", dest)
 	log.Println("exec", cmd.Path, cmd.Args)
 	cmd.Stdout = os.Stdout
