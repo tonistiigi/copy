@@ -101,7 +101,7 @@ func runCopy(ctx context.Context, args []string, opt opts) error {
 		dest = path.Dir(dest)
 	}
 
-	if err := os.MkdirAll(dest, 0700); err != nil {
+	if err := os.MkdirAll(dest, 0755); err != nil {
 		return err
 	}
 
@@ -123,9 +123,6 @@ func runCopy(ctx context.Context, args []string, opt opts) error {
 	if opt.unpack && len(srcs) == 1 {
 		typ := detect.DetectArchiveType(srcs[0])
 		if typ != detect.Unknown {
-			if err := os.MkdirAll(origDest, 0700); err != nil {
-				return err
-			}
 			if err := runUnpack(ctx, srcs[0], origDest, typ, opt); err != nil {
 				return err
 			}
@@ -172,7 +169,7 @@ func runUnpack(ctx context.Context, src, dest string, t detect.ArchiveType, opt 
 		flags += "J"
 	}
 
-	if err := os.MkdirAll(dest, 0700); err != nil {
+	if err := os.MkdirAll(dest, 0755); err != nil {
 		return err
 	}
 
