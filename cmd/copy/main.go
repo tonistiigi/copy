@@ -101,7 +101,7 @@ func runCopy(ctx context.Context, args []string, opt opts) error {
 		dest = path.Dir(dest)
 	}
 
-	if err := os.MkdirAll(dest, 0755); err != nil {
+	if err := mkdirp(dest, opt); err != nil {
 		return err
 	}
 
@@ -169,7 +169,7 @@ func runUnpack(ctx context.Context, src, dest string, t detect.ArchiveType, opt 
 		flags += "J"
 	}
 
-	if err := os.MkdirAll(dest, 0755); err != nil {
+	if err := mkdirp(dest, opt); err != nil {
 		return err
 	}
 
@@ -178,4 +178,16 @@ func runUnpack(ctx context.Context, src, dest string, t detect.ArchiveType, opt 
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+func mkdirp(p string, opt opts) error {
+	if err := os.MkdirAll(p, 0755); err != nil {
+		return err
+	}
+	if chown := opt.chown; chown != nil {
+		if err := os.Lchown(p, chown.Uid, chown.Gid); err != nil {
+			return errors.Wrapf(err, "failed to chown %s", p)
+		}
+	}
+	return nil
 }
