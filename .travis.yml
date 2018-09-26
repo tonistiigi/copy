@@ -1,0 +1,13 @@
+dist: trusty
+sudo: required
+
+services:
+  - docker
+
+language: go
+
+go: 
+ - "1.11"
+
+script:
+ - go build ./cmd/copy
