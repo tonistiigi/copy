@@ -1,10 +1,6 @@
 dist: trusty
 sudo: required
 
-branches:
-  only:
-    - "master"
-
 install:
   - docker run --name buildkit --rm -d --privileged -p 1234:1234 tonistiigi/buildkit --addr tcp://0.0.0.0:1234
   - sudo docker cp buildkit:/usr/bin/buildctl /usr/bin/
@@ -17,11 +13,12 @@ env:
 script:
   - buildctl build --frontend dockerfile.v0 --local context=. --local dockerfile=. --frontend-opt platform=$PLATFORMS --progress=plain
 
+before_deploy:
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+
 deploy:
   provider: script
-  script:
-    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-    - buildctl build --frontend dockerfile.v0 --local context=. --local dockerfile=. --frontend-opt platform=$PLATFORMS --progress=plain --exporter=image --exporter-opt name=$TRAVIS_REPO_SLUG:$TRAVIS_TAG --exporter-opt push=true
+  script: buildctl build --frontend dockerfile.v0 --local context=. --local dockerfile=. --frontend-opt platform=$PLATFORMS --progress=plain --exporter=image --exporter-opt name=$TRAVIS_REPO_SLUG:$TRAVIS_TAG --exporter-opt push=true
   on:
     repo: tonistiigi/copy
     tags: true
