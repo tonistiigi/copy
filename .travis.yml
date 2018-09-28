@@ -1,13 +1,27 @@
 dist: trusty
 sudo: required
 
-services:
-  - docker
+branches:
+  only:
+    - "master"
 
-language: go
+install:
+  - docker run --name buildkit --rm -d --privileged -p 1234:1234 tonistiigi/buildkit --addr tcp://0.0.0.0:1234
+  - sudo docker cp buildkit:/usr/bin/buildctl /usr/bin/
+  - export BUILDKIT_HOST=tcp://0.0.0.0:1234
 
-go: 
- - "1.11"
+env:
+  global:
+    - PLATFORMS="linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64,linux/s390x,linux/ppc64le"
 
 script:
- - go build ./cmd/copy
+  - buildctl build --frontend dockerfile.v0 --local context=. --local dockerfile=. --frontend-opt platform=$PLATFORMS --progress=plain
+
+deploy:
+  provider: script
+  script:
+    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+    - buildctl build --frontend dockerfile.v0 --local context=. --local dockerfile=. --frontend-opt platform=$PLATFORMS --progress=plain --exporter=image --exporter-opt name=$TRAVIS_REPO_SLUG:$TRAVIS_TAG --exporter-opt push=true
+  on:
+    repo: tonistiigi/copy
+    tags: true
