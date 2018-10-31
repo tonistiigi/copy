@@ -134,10 +134,15 @@ func runCopy(ctx context.Context, args []string, opt opts) error {
 }
 
 func runCp(ctx context.Context, srcs []string, dest string, opt opts) error {
+	xattrErrorHandler := func(dst, src, key string, err error) error {
+		log.Println(err)
+		return nil
+	}
 	for _, src := range srcs {
-		if err := copy.Copy(ctx, src, dest, copy.AllowWildcards, func(ci *copy.CopyInfo) {
-			ci.Chown = opt.chown
-		}); err != nil {
+		if err := copy.Copy(ctx, src, dest, copy.AllowWildcards, copy.WithXAttrErrorHandler(xattrErrorHandler),
+			func(ci *copy.CopyInfo) {
+				ci.Chown = opt.chown
+			}); err != nil {
 			return errors.Wrapf(err, "failed to copy %s to %s", src, dest)
 		}
 	}
